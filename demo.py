@@ -31,10 +31,9 @@ def run_demo(agent_executor, config):
     for step in steps:
         print(f"\n>> Step: {step}")
         for chunk in agent_executor.stream({"messages": [HumanMessage(content=step)]}, config):
-            if "tools" in chunk:
-                print(chunk["tools"]["messages"][0].content)
-            elif "agent" in chunk:
-                print(chunk["agent"]["messages"][0].content)
+            msg = chunk.get("tools") or chunk.get("agent")
+            if msg and msg.get("messages"):
+                print(msg["messages"][0].content)
             print("---")
         time.sleep(1)
 
