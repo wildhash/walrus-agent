@@ -1,3 +1,6 @@
+import os
+from typing import Tuple
+
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
@@ -35,14 +38,19 @@ AGENT_INSTRUCTIONS = (
     "If a request falls outside the Wallet API scope, direct users to https://docs.cdp.coinbase.com/wallet-api."
 )
 
-def create_agent():
+def create_agent() -> Tuple[object, dict]:
     """Initialize the agent with tools from AgentKit."""
     # Get AgentKit instance
     agentkit = prepare_agentkit()
 
     
-    # Initialize LLM
-    llm = ChatOpenAI(model="gpt-4o-mini")
+    # Initialize LLM (configurable via env)
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    try:
+        temperature = float(os.getenv("OPENAI_TEMPERATURE", "0.2"))
+    except ValueError:
+        temperature = 0.2
+    llm = ChatOpenAI(model=model_name, temperature=temperature)
 
     # Get Langchain tools
     tools = get_langchain_tools(agentkit)
@@ -50,7 +58,8 @@ def create_agent():
     # Store buffered conversation history in memory
     memory = MemorySaver()
     
-    config = {"configurable": {"thread_id": "Smart Wallet Chatbot"}}
+    thread_id = os.getenv("AGENT_THREAD_ID", "Smart Wallet Chatbot")
+    config = {"configurable": {"thread_id": thread_id}}
     
 
     # Create ReAct Agent using the LLM and CDP Agentkit tools

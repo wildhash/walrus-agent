@@ -26,6 +26,12 @@ Finally, run the chatbot:
 
 `poetry run python chatbot.py`
 
+You can also specify mode and interval non-interactively:
+
+```sh
+AGENT_MODE=auto AUTO_INTERVAL_SECONDS=15 poetry run python chatbot.py
+```
+
 
 ## Configuring Your Agent
 
@@ -52,11 +58,31 @@ The `demo.py` script walks the agent through key Wallet API operations:
 ### Environment Variables
 Create a `.env` file in this directory with the following keys:
 ```properties
+# OpenAI
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_TEMPERATURE=0.2
+
+# Coinbase Developer Platform (CDP)
 CDP_API_KEY_NAME=your_cdp_api_key_name
 CDP_API_KEY_PRIVATE_KEY=your_cdp_api_private_key
+
+# Wallet
 PRIVATE_KEY=your_ethereum_private_key
 NETWORK=base-sepolia
+PAYMASTER_URL=
+WALLET_DATA_FILE=wallet_data.txt
+
+# Feature toggles
+ENABLE_ERC20=1
+ENABLE_PYTH=1
+
+# Agent runtime
+AGENT_MODE=chat
+AGENT_THREAD_ID=Smart Wallet Chatbot
+AUTO_INTERVAL_SECONDS=10
+
+# Demo script
 DEMO_DEST_ADDRESS=optional_destination_address
 ```
 

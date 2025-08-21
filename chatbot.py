@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -50,10 +51,9 @@ def run_autonomous_mode(agent_executor, config, interval=10):
             for chunk in agent_executor.stream(
                 {"messages": [HumanMessage(content=thought)]}, config
             ):
-                if "agent" in chunk:
-                    print(chunk["agent"]["messages"][0].content)
-                elif "tools" in chunk:
-                    print(chunk["tools"]["messages"][0].content)
+                msg = chunk.get("agent") or chunk.get("tools")
+                if msg and msg.get("messages"):
+                    print(msg["messages"][0].content)
                 print("-------------------")
 
             # Wait before the next action
@@ -78,10 +78,9 @@ def run_chat_mode(agent_executor, config):
             for chunk in agent_executor.stream(
                 {"messages": [HumanMessage(content=user_input)]}, config
             ):
-                if "agent" in chunk:
-                    print(chunk["agent"]["messages"][0].content)
-                elif "tools" in chunk:
-                    print(chunk["tools"]["messages"][0].content)
+                msg = chunk.get("agent") or chunk.get("tools")
+                if msg and msg.get("messages"):
+                    print(msg["messages"][0].content)
                 print("-------------------")
 
         except KeyboardInterrupt:
@@ -110,15 +109,19 @@ def main():
     """Start the chatbot agent."""
     agent_executor, config = create_agent()
 
-    mode = choose_mode()
+    # Allow non-interactive mode selection via env or CLI
+    mode = None
+    if len(sys.argv) > 1:
+        mode = sys.argv[1].strip().lower()
+    if mode not in ("chat", "auto"):
+        mode = os.getenv("AGENT_MODE")
+    if mode not in ("chat", "auto"):
+        mode = choose_mode()
     if mode == "chat":
-        
         run_chat_mode(agent_executor=agent_executor, config=config)
-        
     elif mode == "auto":
-        
-        run_autonomous_mode(agent_executor=agent_executor, config=config)
-        
+        interval = int(os.getenv("AUTO_INTERVAL_SECONDS", "10"))
+        run_autonomous_mode(agent_executor=agent_executor, config=config, interval=interval)
 
 if __name__ == "__main__":
     print("Starting Agent...")

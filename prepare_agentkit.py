@@ -18,7 +18,6 @@ from coinbase_agentkit import (
 )
 
 from eth_account import Account
-from coinbase_agentkit.network import NETWORK_ID_TO_CHAIN_ID, NETWORK_ID_TO_CHAIN, CHAIN_ID_TO_NETWORK_ID
 
 
 """
@@ -51,10 +50,13 @@ Join us in shaping AgentKit! Check out the contribution guide:
 """
 
 # Configure a file to persist wallet data
-wallet_data_file = "wallet_data.txt"
+wallet_data_file = os.getenv("WALLET_DATA_FILE", "wallet_data.txt")
 
 def prepare_agentkit():
     """Initialize Smart Wallet Provider and return tools."""
+
+    # Ensure environment variables are loaded when used as a library
+    load_dotenv()
 
     
     # Load wallet data from JSON file
@@ -81,11 +83,14 @@ def prepare_agentkit():
     signer = Account.from_key(private_key)
 
     # Initialize Smart Wallet Provider
+    network_id = os.getenv("NETWORK", "base-sepolia")
+    paymaster_url = os.getenv("PAYMASTER_URL") or None
+
     wallet_provider = SmartWalletProvider(SmartWalletProviderConfig(
-        network_id=os.getenv("NETWORK", "base-sepolia"),
+        network_id=network_id,
         signer=signer,
         smart_wallet_address=wallet_data.get("smart_wallet_address"),
-        paymaster_url=None, # Place your paymaster URL here: https://docs.cdp.coinbase.com/paymaster/docs/welcome
+        paymaster_url=paymaster_url,
     ))
     
     # Save both private key and smart wallet address
@@ -100,14 +105,22 @@ def prepare_agentkit():
 
     # Initialize AgentKit
     # Only include core CDP Wallet API and wallet actions
+    # Allow optional provider toggles via env
+    enable_erc20 = os.getenv("ENABLE_ERC20", "1") not in ("0", "false", "False")
+    enable_pyth = os.getenv("ENABLE_PYTH", "1") not in ("0", "false", "False")
+
+    action_providers = [
+        cdp_api_action_provider(),
+        wallet_action_provider(),
+    ]
+    if enable_erc20:
+        action_providers.append(erc20_action_provider())
+    if enable_pyth:
+        action_providers.append(pyth_action_provider())
+
     agentkit = AgentKit(AgentKitConfig(
         wallet_provider=wallet_provider,
-        action_providers=[
-            cdp_api_action_provider(),      # core CDP API actions
-            wallet_action_provider(),       # smart wallet-specific actions
-            erc20_action_provider(),        # ERC20 token interactions (approve, transfer)
-            pyth_action_provider(),         # Price feed queries via Pyth
-        ]
+        action_providers=action_providers,
     ))
 
     
